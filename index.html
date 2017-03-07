@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+div {
+	display: inline-block;
+}
+
+.text {
+	font-size:25px;
+}
+
+.total {
+	font-size:25px;
+}
+
+</style>
+<body>
+	<div id="revenue"></div>
+	<div id="impresions"></div>
+	<div id="visits"></div>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+var color = ["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"];
+let greens = ["#5cd327", "#016500"];
+let blues = ["#08cce1", "#015167"];
+let fire = ["#fac20d", "#d5540b"];
+
+chart("#revenue", "revenue.json", greens, "REVENUE", " €");
+chart("#impresions", "impresions.json", blues, "IMPRESIONS", "");
+chart("#visits", "visits.json", fire, "VISITS", "");
+
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function formatMoney(n, c, d, t){
+	var c = isNaN(c = Math.abs(c)) ? 2 : c, 
+	d = d == undefined ? "." : d, 
+	t = t == undefined ? "," : t, 
+	s = n < 0 ? "-" : "", 
+	i = String(parseInt(n = Math.abs(Number(n) || 0).toFixed(c))), 
+	j = (j = i.length) > 3 ? j % 3 : 0;
+	return s + (j ? i.substr(0, j) + t : "") + i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + t) + (c ? d + Math.abs(n - i).toFixed(c).slice(2) : "");
+};
+
+function chart(position, data, colors, text, dataType) {
+	var width = 400,
+	    height = 300,
+	    radius = Math.min(width, height) / 2;
+	
+	var color = d3.scale.ordinal()
+	    .range(colors);
+	
+	var arc = d3.svg.arc()
+	    .outerRadius(radius - 50)
+	    .innerRadius(90);
+	    
+	var total = 0;
+	
+	var pie = d3.layout.pie()
+	    .sort(null)
+	    .value(function(d) { total += d.population; return d.population; });
+	
+	var svg = d3.select(position).append("svg")
+	    .attr("width", width)
+	    .attr("height", height)
+	  .append("g")
+	    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+	
+	d3.json(data, function(error, data) {
+	  if (error) throw error;
+	  
+	  var g = svg.selectAll(".arc")
+	      .data(pie(data))
+	    .enter().append("g")
+	      .attr("class", "arc");
+	
+	  let p = -(((formatMoney(total, 2, '.', ',')+ dataType).length/2)*10.7)
+	
+	  g.append("path")
+	      .attr("d", arc)
+	      .style("fill", function(d) { return color(d.data.device); });
+	  
+      g.append("text")
+	      .attr("transform", "translate(" + [-(text.length/2*15),-10.2] + ")")
+	      .attr("class", "text")
+	      .style("fill", "#777777")
+	      .text(text);
+      
+      g.append("text")
+	      .attr("transform", "translate(" + [p,15] + ")")
+	      .attr("class", "total")
+	      .text(formatMoney(total, 2, '.', ',')+dataType);
+	      
+	  g.append("text")
+	      .attr("transform", function(d) {
+	      	if(d.data.device == "tablet")
+	      		return "translate(" + [-170,110] + ")";
+      		else
+	      		return "translate(" + [105,110] + ")";
+	      })
+	      .style("fill", function(d) { return color(d.data.device); })
+	      .text(function (d) {return capitalizeFirstLetter(d.data.device)});
+	      
+      g.append("text")
+	      .attr("transform", function(d) {
+	      	let p = 200 - ((d.value/total)*100+"% "+ formatMoney(d.value, 2, '.', ',') + dataType).toString().length * 8.4;
+	      	if(d.data.device == "tablet")
+	      		return "translate(" + [-170,130] + ")";
+      		else
+	      		return "translate(" + [p,130] + ")";
+	      })
+	      .text(function (d) {
+	      	return ((d.value/total)*100+"% "+ formatMoney(d.value, 2, '.', ',') + dataType)
+	      });
+	});
+}
+
+</script>
